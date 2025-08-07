@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DockingMate Playwright Testing API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background: #4CAF50;
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        .method.get { background: #28a745; color: white; }
+        .method.post { background: #007bff; color: white; }
+        .method.put { background: #ffc107; color: black; }
+        .method.delete { background: #dc3545; color: white; }
+        
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header h1 { font-size: 2rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 DockingMate Playwright Testing API</h1>
+            <p>RESTful API for automated E2E testing with real-time WebSocket updates</p>
+            <div id="server-status" class="status online">Server Online</div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">🧪 Test Execution</div>
+                <div class="card-body">
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <strong>/api/tests/run</strong>
+                        <p>Start a new test execution with custom options</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/tests/status/:runId</strong>
+                        <p>Get the status of a specific test run</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <strong>/api/tests/stop/:runId</strong>
+                        <p>Stop a running test execution</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/tests/running</strong>
+                        <p>Get all currently running tests</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">📊 Reports & Results</div>
+                <div class="card-body">
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/reports/latest</strong>
+                        <p>Get the latest test report</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/reports/history</strong>
+                        <p>Get historical test reports</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/reports/screenshots</strong>
+                        <p>Get available test screenshots</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method delete">DELETE</span>
+                        <strong>/api/reports/cleanup</strong>
+                        <p>Clean up old test reports</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">⚙️ Configuration</div>
+                <div class="card-body">
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/config</strong>
+                        <p>Get current server configuration</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method put">PUT</span>
+                        <strong>/api/config</strong>
+                        <p>Update server configuration</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <strong>/api/config/validate</strong>
+                        <p>Validate current configuration</p>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <strong>/api/config/reset</strong>
+                        <p>Reset configuration to defaults</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">🔗 WebSocket Events</div>
+                <div class="card-body">
+                    <p><strong>Connection URL:</strong> <span id="websocket-url">ws://localhost:3001</span></p>
+                    <div class="endpoint">
+                        <strong>test-started</strong>
+                        <p>Emitted when a test run starts</p>
+                    </div>
+                    <div class="endpoint">
+                        <strong>test-progress</strong>
+                        <p>Real-time test progress updates</p>
+                    </div>
+                    <div class="endpoint">
+                        <strong>test-output</strong>
+                        <p>Live test execution output</p>
+                    </div>
+                    <div class="endpoint">
+                        <strong>test-completed</strong>
+                        <p>Emitted when a test run completes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">🚀 Quick Start</div>
+            <div class="card-body">
+                <h3>Start a Test Run</h3>
+                <div class="code">curl -X POST http://localhost:3001/api/tests/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "browser": "chromium",
+    "suite": "auth",
+    "headed": false
+  }'</div>
+                
+                <h3 style="margin-top: 1.5rem;">Connect via WebSocket</h3>
+                <div class="code">const socket = io('http://localhost:3001');
+socket.on('test-started', (data) => {
+  console.log('Test started:', data);
+});
+socket.emit('join-test-room', runId);</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">📋 Available Test Suites</div>
+            <div class="card-body" id="test-suites">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize WebSocket connection
+        const socket = io();
+        
+        // Update WebSocket URL
+        document.getElementById('websocket-url').textContent = `ws://${window.location.host}`;
+        
+        // Fetch and display server stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/tests/stats');
+                const stats = await response.json();
+                
+                const statsGrid = document.getElementById('stats-grid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <span class="stat-number">${stats.total}</span>
+                        <span class="stat-label">Total Tests</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${stats.running}</span>
+                        <span class="stat-label">Running</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${stats.successRate.toFixed(1)}%</span>
+                        <span class="stat-label">Success Rate</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${Math.round(stats.avgDuration / 1000)}s</span>
+                        <span class="stat-label">Avg Duration</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+        
+        // Fetch and display test suites
+        async function loadTestSuites() {
+            try {
+                const response = await fetch('/api/tests/suites');
+                const data = await response.json();
+                
+                const suitesContainer = document.getElementById('test-suites');
+                suitesContainer.innerHTML = data.suites.map(suite => 
+                    `<span class="status online" style="margin: 0.25rem;">${suite}</span>`
+                ).join('');
+            } catch (error) {
+                console.error('Failed to load test suites:', error);
+            }
+        }
+        
+        // WebSocket event handlers
+        socket.on('connect', () => {
+            document.getElementById('server-status').className = 'status online';
+            document.getElementById('server-status').textContent = 'Server Online';
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('server-status').className = 'status offline';
+            document.getElementById('server-status').textContent = 'Server Offline';
+        });
+        
+        socket.on('test-started', (data) => {
+            console.log('Test started:', data);
+            loadStats(); // Refresh stats
+        });
+        
+        socket.on('test-completed', (data) => {
+            console.log('Test completed:', data);
+            loadStats(); // Refresh stats
+        });
+        
+        // Load initial data
+        loadStats();
+        loadTestSuites();
+        
+        // Refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>
