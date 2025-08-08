@@ -20,65 +20,69 @@ test.describe('Homepage Functionality', () => {
   test('should display navigation menu', async ({ page }) => {
     await page.goto('/');
     
-    // Check for navigation element
-    await expect(page.locator('nav')).toBeVisible();
+    // Check for Material-UI navigation element (first nav)
+    await expect(page.locator('nav').first()).toBeVisible();
     
-    // Check for navigation links based on actual site content
-    await expect(page.getByText('Home')).toBeVisible();
-    await expect(page.getByText('About')).toBeVisible();
-    await expect(page.getByText('How It Works')).toBeVisible();
-    await expect(page.getByText('Blog')).toBeVisible();
+    // Check for navigation buttons based on actual site content
+    await expect(page.locator('button:has-text("Home")')).toBeVisible();
+    await expect(page.locator('button:has-text("About")')).toBeVisible();
+    await expect(page.locator('button:has-text("How It Works")')).toBeVisible();
+    await expect(page.locator('button:has-text("Blog")')).toBeVisible();
+    await expect(page.locator('button:has-text("Login")')).toBeVisible();
   });
 
-  test('should display authentication buttons when not logged in', async ({ page }) => {
+  test('should display login button when not logged in', async ({ page }) => {
     await page.goto('/');
     
-    // Check for login button/link in navigation
-    await expect(page.getByText('Login')).toBeVisible();
+    // Check for login button in navigation
+    await expect(page.locator('button:has-text("Login")')).toBeVisible();
     
-    // The site might have signup functionality, but let's check if it's visible
-    // We'll make this more flexible to avoid failures
-    const signupElement = page.getByText('Sign Up').or(page.getByText('Register')).or(page.getByText('Join'));
-    // Don't fail if signup button is not visible, just check login
+    // Login button should be clickable
+    await expect(page.locator('button:has-text("Login")')).toBeEnabled();
   });
 
-  test('should display key sections', async ({ page }) => {
+  test('should display key service sections', async ({ page }) => {
     await page.goto('/');
     
-    // Check for key sections mentioned in the inspection
+    // Check for the main service cards using h3 headings
     await expect(page.locator('h3:has-text("Berth rentals")')).toBeVisible();
     await expect(page.locator('h3:has-text("Swapping your berth")')).toBeVisible();
+    await expect(page.locator('h3:has-text("How it works")')).toBeVisible();
     
-    // Check if there are any forms or input elements
-    const formElements = page.locator('form, input, button[type="submit"]');
-    // Just check if page loads properly, forms might be conditional
+    // Check service cards are clickable
+    const serviceCards = page.locator('.blog-card');
+    await expect(serviceCards).toHaveCount(3);
   });
 
-  test('should have working navigation links', async ({ page }) => {
+  test('should have working navigation buttons', async ({ page }) => {
     await page.goto('/');
     
-    // Test that navigation links are clickable and lead somewhere
-    const homeLink = page.getByText('Home');
-    const aboutLink = page.getByText('About');
+    // Test that navigation buttons are clickable
+    const homeButton = page.locator('button:has-text("Home")');
+    const aboutButton = page.locator('button:has-text("About")');
+    const loginButton = page.locator('button:has-text("Login")');
     
-    await expect(homeLink).toBeVisible();
-    await expect(aboutLink).toBeVisible();
+    await expect(homeButton).toBeVisible();
+    await expect(aboutButton).toBeVisible();
+    await expect(loginButton).toBeVisible();
     
-    // Click About link to test navigation
-    await aboutLink.click();
-    // Allow some time for navigation
-    await page.waitForTimeout(2000);
+    // Check they're all enabled
+    await expect(homeButton).toBeEnabled();
+    await expect(aboutButton).toBeEnabled();
+    await expect(loginButton).toBeEnabled();
   });
 
-  test('should display key content sections', async ({ page }) => {
+  test('should display main content sections', async ({ page }) => {
     await page.goto('/');
     
-    // Check for the sustainability message we saw in inspection
+    // Check for the main sustainability heading using h2
     await expect(page.locator('h2:has-text("Mooringmate - Enabling sustainable mooring and mobility")')).toBeVisible();
     
-    // Verify page has some interactive elements
-    const allElements = await page.locator('*').count();
-    expect(allElements).toBeGreaterThan(10); // Basic sanity check
+    // Check for FAQ section using heading
+    await expect(page.getByText('Frequently Asked Questions')).toBeVisible();
+    
+    // Check for footer
+    await expect(page.getByText('© Copyright 2025 - Mooringmate. All Rights Reserved.')).toBeVisible();
   });
 
   test('should have proper meta information', async ({ page }) => {
@@ -92,11 +96,13 @@ test.describe('Homepage Functionality', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('should have privacy policy link', async ({ page }) => {
+  test('should have privacy policy link in footer', async ({ page }) => {
     await page.goto('/');
     
     // Check for privacy policy link that we found in inspection
-    await expect(page.getByText('Privacy Policy')).toBeVisible();
+    const privacyLink = page.getByRole('link', { name: 'Privacy Policy' });
+    await expect(privacyLink).toBeVisible();
+    await expect(privacyLink).toHaveAttribute('href', '/privacy-policy');
   });
 
   test('should load without JavaScript errors', async ({ page }) => {
@@ -105,8 +111,8 @@ test.describe('Homepage Functionality', () => {
     
     await page.goto('/');
     
-    // Wait a bit for any async operations
-    await page.waitForTimeout(3000);
+    // Wait for main content to load instead of fixed timeout
+    await expect(page.getByText('Mooring made easy')).toBeVisible();
     
     // Check that no critical errors occurred
     expect(errors.length).toBeLessThan(5); // Allow minor errors but not critical failures
@@ -134,58 +140,71 @@ test.describe('Homepage Functionality', () => {
     }
   });
 
-  test('should navigate to login page', async ({ page }) => {
+  test('should navigate to login page from login button', async ({ page }) => {
     await page.goto('/');
     
-    await page.click('.login-btn, a[href="/login"]');
+    // Click login button in navigation
+    await page.click('button:has-text("Login")');
     
-    await expect(page).toHaveURL('/login');
+    await expect(page).toHaveURL(/.*login/);
   });
 
-  test('should navigate to signup page', async ({ page }) => {
+  test('should navigate to login page from service cards', async ({ page }) => {
     await page.goto('/');
     
-    await page.click('.signup-btn, a[href="/signup"]');
+    // Service cards should navigate to login page when clicked
+    const berthRentalCard = page.locator('.blog-card').first();
+    await berthRentalCard.click();
     
-    await expect(page).toHaveURL('/signup');
+    await expect(page).toHaveURL(/.*login/);
   });
 
-  test('should display logo and brand name', async ({ page }) => {
+  test('should display hero section content', async ({ page }) => {
     await page.goto('/');
     
-    await expect(page.locator('.logo, [data-testid="logo"]')).toBeVisible();
-    await expect(page.locator('.brand-name, .site-title')).toBeVisible();
+    // Check hero section with background image
+    await expect(page.locator('.hero-section')).toBeVisible();
+    
+    // Check hero content
+    await expect(page.locator('h1:has-text("Mooring made easy")')).toBeVisible();
+    await expect(page.locator('h4:has-text("Your ultimate docking solution")')).toBeVisible();
   });
 
-  test('should have proper meta tags and SEO elements', async ({ page }) => {
+  test('should display how it works section', async ({ page }) => {
     await page.goto('/');
     
-    const metaDescription = await page.getAttribute('meta[name="description"]', 'content');
-    const metaKeywords = await page.getAttribute('meta[name="keywords"]', 'content');
+    // Check "How does it work?" section
+    await expect(page.getByText('How does it work?')).toBeVisible();
+    await expect(page.getByText('Easily Rent or swap a Mooring for Your Boat')).toBeVisible();
     
-    expect(metaDescription).toBeTruthy();
-    expect(metaDescription.length).toBeGreaterThan(50);
-    
-    if (metaKeywords) {
-      expect(metaKeywords).toContain('berth');
-    }
+    // Check explanatory text
+    await expect(page.getByText('Looking for a mooring for your boat?')).toBeVisible();
   });
 
-  test('should handle search form validation', async ({ page }) => {
+  test('should display service card descriptions', async ({ page }) => {
     await page.goto('/');
     
-    await page.click('.search-btn, button:has-text("Search")');
+    // Check berth rentals description
+    await expect(page.getByText('Turn your mooring into income')).toBeVisible();
     
-    await expect(page.locator('.error-message, .validation-error')).toBeVisible();
+    // Check swapping description
+    await expect(page.getByText('Explore more, without extra mooring costs')).toBeVisible();
+    
+    // Check how it works description
+    await expect(page.getByText('List. Match. Sail.')).toBeVisible();
   });
 
-  test('should display recent berths section', async ({ page }) => {
+  test('should have proper page structure', async ({ page }) => {
     await page.goto('/');
     
-    const recentBerthsSection = page.locator('.recent-berths, [data-testid="recent-berths"]');
-    if (await recentBerthsSection.isVisible()) {
-      const berthCards = recentBerthsSection.locator('.berth-card, .card');
-      await expect(berthCards.first()).toBeVisible();
-    }
+    // Check main Material-UI structure using first()
+    await expect(page.locator('.MuiContainer-root').first()).toBeVisible();
+    await expect(page.locator('.MuiGrid-container').first()).toBeVisible();
+    
+    // Check card components
+    await expect(page.locator('.MuiCard-root')).toHaveCount(3); // Service cards
+    
+    // Check chevron icons in cards
+    await expect(page.locator('svg[data-testid="ChevronRightIcon"]')).toHaveCount(3);
   });
 });

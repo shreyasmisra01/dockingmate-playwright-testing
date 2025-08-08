@@ -1,180 +1,121 @@
 import { test, expect } from '@playwright/test';
-import { contactForm } from '../../fixtures/test-data.js';
 
-test.describe('Contact Form Functionality', () => {
-  test('should display contact form', async ({ page }) => {
+test.describe('Contact Functionality', () => {
+  test('should show 404 for contact route', async ({ page }) => {
     await page.goto('/contact');
     
-    await expect(page).toHaveTitle(/Contact|Mooringmate/);
-    
-    await expect(page.locator('.contact-form, [data-testid="contact-form"]')).toBeVisible();
-    
-    await expect(page.locator('input[name="name"], [data-testid="name"]')).toBeVisible();
-    await expect(page.locator('input[name="email"], [data-testid="email"]')).toBeVisible();
-    await expect(page.locator('input[name="subject"], [data-testid="subject"]')).toBeVisible();
-    await expect(page.locator('textarea[name="message"], [data-testid="message"]')).toBeVisible();
+    // Contact route doesn't exist, should show 404
+    await expect(page.getByText('404 - Page Not Found')).toBeVisible();
+    await expect(page.getByText('Sorry, the page you are looking for does not exist.')).toBeVisible();
   });
 
-  test('should submit contact form with valid data', async ({ page }) => {
+  test('should have go home button on 404 page', async ({ page }) => {
     await page.goto('/contact');
     
-    await page.fill('input[name="name"]', contactForm.name);
-    await page.fill('input[name="email"]', contactForm.email);
-    await page.fill('input[name="subject"]', contactForm.subject);
-    await page.fill('textarea[name="message"]', contactForm.message);
-    
-    await page.click('button[type="submit"], .submit-btn');
-    
-    await expect(page.locator('.success-message:has-text("sent"), .form-success')).toBeVisible();
+    // Should have a way to go back home
+    const goHomeButton = page.locator('button:has-text("Go to Home")');
+    await expect(goHomeButton).toBeVisible();
+    await expect(goHomeButton).toBeEnabled();
   });
 
-  test('should show validation errors for empty fields', async ({ page }) => {
-    await page.goto('/contact');
+  test('should display footer with contact info on homepage', async ({ page }) => {
+    await page.goto('/');
     
-    await page.click('button[type="submit"]');
+    // Check for Mooringmate contact information in footer
+    await expect(page.getByText('© Copyright 2025 - Mooringmate. All Rights Reserved.')).toBeVisible();
     
-    await expect(page.locator('.error-message, .field-error')).toHaveCount(4, { timeout: 5000 });
+    // Check that footer section exists
+    const footerSection = page.locator('footer, .footer, .MuiContainer-root').last();
+    await expect(footerSection).toBeVisible();
   });
 
-  test('should validate email format', async ({ page }) => {
+  test('should navigate back to home from 404', async ({ page }) => {
     await page.goto('/contact');
     
-    await page.fill('input[name="email"]', 'invalid-email');
+    // Click go home button
+    await page.click('button:has-text("Go to Home")');
     
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.error-message:has-text("email"), .email-error')).toBeVisible();
+    // Should navigate to homepage
+    await expect(page).toHaveURL('/');
+    await expect(page.getByText('Mooring made easy')).toBeVisible();
   });
 
-  test('should display contact information', async ({ page }) => {
-    await page.goto('/contact');
+  test('should display privacy policy link as contact option', async ({ page }) => {
+    await page.goto('/');
     
-    await expect(page.locator('.contact-info, [data-testid="contact-info"]')).toBeVisible();
-    
-    await expect(page.locator('.contact-email, .email-info')).toBeVisible();
-    await expect(page.locator('.contact-phone, .phone-info')).toBeVisible();
-    await expect(page.locator('.contact-address, .address-info')).toBeVisible();
+    // Privacy policy could be a way to contact/get info about the company
+    const privacyLink = page.getByRole('link', { name: 'Privacy Policy' });
+    await expect(privacyLink).toBeVisible();
+    await expect(privacyLink).toHaveAttribute('href', '/privacy-policy');
   });
 
-  test('should display office hours', async ({ page }) => {
-    await page.goto('/contact');
+  test.skip('ContactForm component is available but not used', async ({ page }) => {
+    // The ContactForm component exists in the codebase with these fields:
+    // - Name (required)  
+    // - Email (required, type="email")
+    // - Phone (optional, type="tel", name="phn")
+    // - Message (required, multiline)
+    // - Checkbox for data consent (required)
+    // - Submit button with loading state
     
-    const officeHours = page.locator('.office-hours, [data-testid="office-hours"]');
-    if (await officeHours.isVisible()) {
-      await expect(officeHours.locator('.hours-title')).toBeVisible();
-      await expect(officeHours.locator('.hours-list')).toBeVisible();
-    }
+    // But it's commented out in the Dockingmate.jsx component
+    // If it were enabled, it would be at the bottom of the homepage
   });
 
-  test('should display contact map', async ({ page }) => {
-    await page.goto('/contact');
-    
-    const mapContainer = page.locator('.contact-map, [data-testid="map"], .mapbox-map');
-    if (await mapContainer.isVisible()) {
-      await expect(mapContainer).toBeVisible();
-    }
+  test.skip('should submit contact form when enabled', async ({ page }) => {
+    // Skipped - ContactForm is commented out in homepage
+    // When enabled, the form would:
+    // 1. Validate required fields (name, email, message, consent checkbox)
+    // 2. Show loading state during submission
+    // 3. Call sendContact service
+    // 4. Show success/error toast messages
   });
 
-  test('should handle form submission failure', async ({ page }) => {
-    await page.goto('/contact');
-    
-    await page.route('**/api/contact', route => {
-      route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Server error' }),
-      });
-    });
-    
-    await page.fill('input[name="name"]', contactForm.name);
-    await page.fill('input[name="email"]', contactForm.email);
-    await page.fill('input[name="subject"]', contactForm.subject);
-    await page.fill('textarea[name="message"]', contactForm.message);
-    
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.error-message:has-text("error"), .form-error')).toBeVisible();
+  test.skip('should validate contact form fields when enabled', async ({ page }) => {
+    // Skipped - ContactForm is commented out
+    // Form validation would include:
+    // - Required field validation for name, email, message
+    // - Email format validation (HTML5 type="email")
+    // - Phone field is optional (name="phn")
+    // - Required consent checkbox
   });
 
-  test('should clear form after successful submission', async ({ page }) => {
-    await page.goto('/contact');
-    
-    await page.fill('input[name="name"]', contactForm.name);
-    await page.fill('input[name="email"]', contactForm.email);
-    await page.fill('input[name="subject"]', contactForm.subject);
-    await page.fill('textarea[name="message"]', contactForm.message);
-    
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.success-message')).toBeVisible();
-    
-    await expect(page.locator('input[name="name"]')).toHaveValue('');
-    await expect(page.locator('input[name="email"]')).toHaveValue('');
-    await expect(page.locator('input[name="subject"]')).toHaveValue('');
-    await expect(page.locator('textarea[name="message"]')).toHaveValue('');
+  test.skip('should show loading state during form submission', async ({ page }) => {
+    // Skipped - ContactForm is commented out
+    // Would show CircularProgress component during submission
+    // Button text changes from "Send Message" to loading spinner
   });
 
-  test('should display social media links', async ({ page }) => {
-    await page.goto('/contact');
-    
-    const socialLinks = page.locator('.social-links, [data-testid="social-links"]');
-    if (await socialLinks.isVisible()) {
-      await expect(socialLinks.locator('a[href*="facebook"]')).toBeVisible();
-      await expect(socialLinks.locator('a[href*="twitter"]')).toBeVisible();
-      await expect(socialLinks.locator('a[href*="instagram"]')).toBeVisible();
-    }
+  test.skip('should handle form submission success', async ({ page }) => {
+    // Skipped - ContactForm is commented out
+    // On success: shows toast.success with response message
+    // Form state would be handled by React component
   });
 
-  test('should show loading state during form submission', async ({ page }) => {
-    await page.goto('/contact');
-    
-    await page.route('**/api/contact', route => {
-      setTimeout(() => {
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ success: true }),
-        });
-      }, 2000);
-    });
-    
-    await page.fill('input[name="name"]', contactForm.name);
-    await page.fill('input[name="email"]', contactForm.email);
-    await page.fill('input[name="subject"]', contactForm.subject);
-    await page.fill('textarea[name="message"]', contactForm.message);
-    
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.loading, .spinner, button:disabled')).toBeVisible();
+  test.skip('should handle form submission error', async ({ page }) => {
+    // Skipped - ContactForm is commented out  
+    // On error: shows toast.error "Something went wrong, please try again later."
   });
 
-  test('should validate message length', async ({ page }) => {
-    await page.goto('/contact');
+  test('should have working 404 page navigation', async ({ page }) => {
+    await page.goto('/nonexistent-page');
     
-    const shortMessage = 'Hi';
-    const longMessage = 'a'.repeat(1001);
+    // Any non-existent route should show 404
+    await expect(page.getByText('404 - Page Not Found')).toBeVisible();
     
-    await page.fill('textarea[name="message"]', shortMessage);
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.error-message:has-text("short"), .message-too-short')).toBeVisible();
-    
-    await page.fill('textarea[name="message"]', longMessage);
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.error-message:has-text("long"), .message-too-long')).toBeVisible();
+    // Should have navigation back to main site - use more specific selectors
+    await expect(page.locator('nav button:has-text("Home")')).toBeVisible();
+    await expect(page.locator('nav button:has-text("Login")')).toBeVisible();
   });
 
-  test('should display FAQ section', async ({ page }) => {
-    await page.goto('/contact');
+  test('should maintain header navigation on 404 pages', async ({ page }) => {
+    await page.goto('/invalid-route');
     
-    const faqSection = page.locator('.faq-section, [data-testid="faq"]');
-    if (await faqSection.isVisible()) {
-      const faqItems = faqSection.locator('.faq-item, .faq-question');
-      await expect(faqItems.first()).toBeVisible();
-      
-      await faqItems.first().click();
-      await expect(faqSection.locator('.faq-answer').first()).toBeVisible();
-    }
+    // Header navigation should still be present - use nav context
+    await expect(page.locator('nav button:has-text("Home")')).toBeVisible();
+    await expect(page.locator('nav button:has-text("About")')).toBeVisible();
+    await expect(page.locator('nav button:has-text("How It Works")')).toBeVisible();
+    await expect(page.locator('nav button:has-text("Blog")')).toBeVisible();
+    await expect(page.locator('nav button:has-text("Login")')).toBeVisible();
   });
 });
